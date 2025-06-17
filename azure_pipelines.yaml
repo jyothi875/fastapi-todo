@@ -1,0 +1,73 @@
+trigger:
+  - main
+pool:
+      vmImage: 'ubuntu-latest'
+variables:
+  imageName: 'fastapi-todo'
+  tag: '$(Build.BuildId)'
+  containerRegistry: 'jyothika1234.docker.io'
+  dockerImage: '$jyothika1234/$fastapi-img:$latest'
+
+stages:
+- stage: Build
+  jobs:
+  - job: 
+    steps:
+    - task: UsePythonVersion@0
+      inputs:
+        versionSpec: '3.11'
+        displayName: 'Use Python 3.11'
+        addToPath: true
+    - script: |
+        python -m venv venv
+        source venv/bin/activate
+        python -m pip install --upgrade pip
+        python -m pip install -r requirements.txt
+    - task: ArchiveFiles@2
+      displayName: 'Archive Files'
+      inputs:
+        rootFolderOrFile: '$(System.DefaultWorkingDirectory)'
+        includeRootFolder: false
+        archiveType: 'zip'
+        archiveFile: '$(Build.ArtifactStagingDirectory)/$(imageName)-$(tag).zip'
+        replaceExistingArchive: true
+    - task: PublishBuildArtifacts@1
+      inputs:
+        PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+        ArtifactName: 'drop'
+        publishLocation: 'Container'
+      displayName: 'Publish Build Artifacts'
+
+- stage: DockerBuild
+  jobs:
+  - job: 
+    steps:
+    - task: Docker@2
+      displayName: 'Build and Push Docker Image'
+      inputs:
+        containerRegistry: '$(containerRegistry)'
+        repository: '$(imageName)'
+        command: 'buildAndPush'
+        Dockerfile: '**/Dockerfile'
+        tags: |
+          $(tag)
+    - task: Kubernetes@1
+      displayName: 'Deploy to Kubernetes'
+      inputs:
+        connectionType: 'Kubernetes Service Connection'
+        kubernetesServiceEndpoint: 'your-kubernetes-service-connection'
+        namespace: 'default'
+        command: 'apply'
+        arguments: '-f deployment.yaml'
+- stage: Deploy
+  jobs:
+      - job: 
+        steps:
+        - task: Kubernetes@1
+          displayName: 'Deploy to Kubernetes'
+          inputs:
+            connectionType: 'Kubernetes Service Connection'
+            kubernetesServiceEndpoint: 'your-kubernetes-service-connection'
+            namespace: 'default'
+            command: 'apply'
+            arguments: '-f deployment.yaml'
