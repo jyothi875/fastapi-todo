@@ -3,10 +3,10 @@ trigger:
 pool:
       vmImage: 'ubuntu-latest'
 variables:
-  imageName: 'fastapi-todo'
+  imageName: 'jyothika1234/fastapi-img'
   tag: '$(Build.BuildId)'
-  containerRegistry: 'jyothika1234.docker.io'
-  dockerImage: '$jyothika1234/$fastapi-img:$latest'
+  containerRegistry: 'dockerHubLink'
+  
 
 stages:
 - stage: Build
@@ -51,23 +51,15 @@ stages:
         Dockerfile: '**/Dockerfile'
         tags: |
           $(tag)
-    - task: Kubernetes@1
-      displayName: 'Deploy to Kubernetes'
-      inputs:
-        connectionType: 'Kubernetes Service Connection'
-        kubernetesServiceEndpoint: 'your-kubernetes-service-connection'
-        namespace: 'default'
-        command: 'apply'
-        arguments: '-f deployment.yaml'
 - stage: Deploy
   jobs:
       - job: 
         steps:
-        - task: Kubernetes@1
-          displayName: 'Deploy to Kubernetes'
+        - task: AzureCLI@2
           inputs:
-            connectionType: 'Kubernetes Service Connection'
-            kubernetesServiceEndpoint: 'your-kubernetes-service-connection'
-            namespace: 'default'
-            command: 'apply'
-            arguments: '-f deployment.yaml'
+            azureSubscription: 'test-service-connection'
+            scriptType: 'bash'
+            scriptLocation: 'inlineScript'
+            inlineScript: |
+              az aks get-credentials --resource-group test-rg1 --name cluster-03
+              kubectl apply -f deployment.yaml           

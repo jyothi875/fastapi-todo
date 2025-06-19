@@ -1,23 +1,53 @@
-from fastapi import FastAPI, Request, Form
-from fastapi.responses import HTMLResponse, RedirectResponse
-from fastapi.templating import Jinja2Templates
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
+from typing import List
+
 app = FastAPI()
-templates = Jinja2Templates(directory="templates")
 
-# In-memory todo list
-todos = []
+# ToDo model
+class Todo(BaseModel):
+    id: int
+    title: str
+    completed: bool = False
 
-@app.get("/", response_class=HTMLResponse)
-async def read_root(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request, "todos": todos})
+# In-memory storage
+todos: List[Todo] = []
 
-@app.post("/add")
-async def add_todo(task: str = Form(...)):
-    todos.append(task)
-    return RedirectResponse(url="/", status_code=303)
+@app.get("/")
+def read_root():
+    return {"message": "Welcome to the FastAPI ToDo API"}
 
-@app.post("/delete/{task_id}")
-async def delete_todo(task_id: int):
-    if 0 <= task_id < len(todos):
-        todos.pop(task_id)
-    return RedirectResponse(url="/", status_code=303)
+@app.get("/todos", response_model=List[Todo])
+def get_all_todos():
+    return todos
+
+@app.post("/todos", response_model=Todo)
+def create_todo(todo: Todo):
+    for t in todos:
+        if t.id == todo.id:
+            raise HTTPException(status_code=400, detail="Todo with this ID already exists.")
+    todos.append(todo)
+    return todo
+
+@app.get("/todos/{todo_id}", response_model=Todo)
+def get_todo(todo_id: int):
+    for todo in todos:
+        if todo.id == todo_id:
+            return todo
+    raise HTTPException(status_code=404, detail="Todo not found")
+
+@app.put("/todos/{todo_id}", response_model=Todo)
+def update_todo(todo_id: int, updated_todo: Todo):
+    for index, todo in enumerate(todos):
+        if todo.id == todo_id:
+            todos[index] = updated_todo
+            return updated_todo
+    raise HTTPException(status_code=404, detail="Todo not found")
+
+@app.delete("/todos/{todo_id}")
+def delete_todo(todo_id: int):
+    for index, todo in enumerate(todos):
+        if todo.id == todo_id:
+            todos.pop(index)
+            return {"message": "Todo deleted"}
+    raise HTTPException(status_code=404, detail="Todo not found")
