@@ -3,7 +3,7 @@ trigger:
 pool:
       vmImage: 'ubuntu-latest'
 variables:
-  imageName: 'jyothika1234/fastapi-img'
+  imageName: 'jyothika1234/fastapi-new'
   tag: '$(Build.BuildId)'
   containerRegistry: 'dockerHubLink'
   

@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: fastapi-deployment
+  name: fastapi-deploy
 spec:
   replicas: 1
   selector:
@@ -13,18 +13,10 @@ spec:
         app: fastapi
     spec:
       containers:
-      - name: fastapi-container
-        image: jyothika1234/fastapi-img
-        ports:
-        - containerPort: 8000
-        resources:
-          requests:
-            memory: "128Mi"
-            cpu: "250m"
-          limits:
-            memory: "256Mi"
-            cpu: "500m"
-
+        - name: fastapi-container
+          image: jyothika1234/fastapi-new:latest
+          ports:
+            - containerPort: 8000
 ---
 apiVersion: v1
 kind: Service
@@ -34,7 +26,7 @@ spec:
   selector:
     app: fastapi
   ports:
-  - protocol: TCP
-    port: 80
-    targetPort: 8000
+    - protocol: TCP
+      port: 80
+      targetPort: 8000
   type: LoadBalancer
